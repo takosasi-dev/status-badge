@@ -15,7 +15,7 @@ export class StatusBadgeSettingTab extends PluginSettingTab {
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		const missing = missingIcons(this.owner.settings.styles, getIconIds());
 		return [
-			{ type: "group", heading: S.setHeadingPaths, items: [
+			{ type: "group", items: [                    // 最初の組は見出し無し(Plugin guidelines)
 				{ name: S.setSpecJson, desc: S.setSpecJsonDesc, control: { type: "text", key: "specJsonPath" } },
 				{ name: S.setBoard, desc: S.setBoardDesc, control: { type: "text", key: "boardNotePath" } },
 			] },

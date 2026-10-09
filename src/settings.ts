@@ -21,7 +21,7 @@ export const DEFAULTS: Settings = {
 	specJsonPath: "仕様書MDファイル/00_実装状況.json",
 	boardNotePath: "仕様書MDファイル/00_実装状況.md",
 	showManual: true,
-	manualFolders: ["説明書/Claude開発ツールについて"],
+	manualFolders: [],                             // 公開の既定は空(使う人が自分の vault のフォルダを書く)
 	manualProperty: "状態",
 	staleDays: 7,                                  // §8.6(依頼者: 叩き台どおり、2026-10-09)
 	missingFolder: "",

@@ -43,7 +43,6 @@ export const S = {
 	noticeNoBoard: (path: string) => `一覧ノートがありません: ${path}`,
 	noticeSchema: "設定の形が違うので既定の値で動いています(data.json は書き換えていません)",
 
-	setHeadingPaths: "場所",
 	setSpecJson: "SpecStatus の JSON",
 	setSpecJsonDesc: "vault からのパス",
 	setBoard: "一覧ノート",
