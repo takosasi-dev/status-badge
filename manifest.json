@@ -1,0 +1,9 @@
+{
+	"id": "status-badge",
+	"name": "Status Badge",
+	"version": "0.1.0",
+	"minAppVersion": "1.14.4",
+	"description": "Show the implementation status of the open note as a badge in the view header. Read-only.",
+	"author": "takosasi-dev",
+	"isDesktopOnly": false
+}

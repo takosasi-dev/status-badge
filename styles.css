@@ -1,0 +1,12 @@
+/* StatusBadge: 見出し部の印の色(§9.7)。色だけに頼らず、食い違いは下線、古さは薄さでも示す */
+.sb-badge.sb-tone-ok { color: var(--color-green); }
+.sb-badge.sb-tone-partial { color: var(--color-yellow); }
+.sb-badge.sb-tone-progress { color: var(--color-blue); }
+.sb-badge.sb-tone-todo { color: var(--text-muted); }
+.sb-badge.sb-tone-stopped { color: var(--color-red); }
+.sb-badge.sb-tone-other { color: var(--text-faint); }
+.sb-badge.sb-conflict { text-decoration: underline wavy var(--color-red); box-shadow: inset 0 -2px 0 var(--color-red); }
+.sb-badge.sb-stale { opacity: 0.55; }
+.sb-badge .sb-text { margin-inline-start: 4px; font-size: var(--font-ui-smaller); }
+/* 文字を添えたときは、薄い色の帯で囲んで見つけやすくする(依頼者: 印がどこか分からない、2026-10-09) */
+.sb-badge.sb-with-text { width: auto; padding: 0 8px; border-radius: var(--radius-m); background-color: color-mix(in srgb, currentColor 14%, transparent); }
