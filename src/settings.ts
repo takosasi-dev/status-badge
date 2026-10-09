@@ -13,6 +13,8 @@ export interface Settings {
 	missingFolder: string;
 	missingExclude: string[];
 	showText: boolean;
+	showDots: boolean;
+	notifyChanges: boolean;
 	styles: StyleRule[];
 }
 
@@ -28,6 +30,8 @@ export const DEFAULTS: Settings = {
 	missingExclude: ["仕様書MDファイル/00_実装状況.md", "仕様書MDファイル/00_OS別の整理について.md",
 		"仕様書MDファイル/00_Phase0採取キット.md"],
 	showText: true,                                // 依頼者: 文字はあった方がいい(2026-10-09。仕様書の既定 OFF から変更)
+	showDots: true,                                // FR-20
+	notifyChanges: true,                           // FR-21
 	styles: [
 		{ value: "実装完了", icon: "circle-check", tone: "ok" },
 		{ value: "導入済み", icon: "circle-check", tone: "ok" },
@@ -68,6 +72,8 @@ export function normalizeSettings(raw: unknown): { settings: Settings; mismatch:
 			missingFolder: str("missingFolder"),
 			missingExclude: list("missingExclude"),
 			showText: bool("showText"),
+			showDots: bool("showDots"),
+			notifyChanges: bool("notifyChanges"),
 			styles: styles.length ? styles : base.styles,
 		},
 		mismatch: false,

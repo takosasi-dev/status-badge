@@ -25,10 +25,12 @@ export interface SpecEntry {
 	note: string | null;
 	extras: SpecExtras;
 	duplicate: boolean;             // 同じパスが2つのプロジェクトに出た(§10)
+	docs: string[];                 // このプロジェクトの文書のパス(NFC。FR-17 の一覧で開く先)
 }
 
 export interface SpecIndex {
 	byPath: Map<string, SpecEntry>;
+	entries: SpecEntry[];           // プロジェクトごと(FR-17・FR-21)
 	generatedAt: string | null;
 	unreadableCount: number;
 	projects: number;
@@ -78,6 +80,7 @@ export function parseSpecJson(text: string): ParseResult {
 	if (root.schema !== 1) return { ok: false, reason: `schema が 1 でない(${JSON.stringify(root.schema)})` };
 	if (!Array.isArray(root.projects)) return { ok: false, reason: "projects が無い" };
 	const byPath = new Map<string, SpecEntry>();
+	const entries: SpecEntry[] = [];
 	for (const raw of root.projects) {
 		const p = obj(raw);
 		if (!p || !Array.isArray(p.docs)) continue;
@@ -91,11 +94,14 @@ export function parseSpecJson(text: string): ParseResult {
 			note: str(p.note),
 			extras: extras(p),
 			duplicate: false,
+			docs: [],
 		};
+		entries.push(entry);
 		for (const d of p.docs) {
 			const path = obj(d)?.path;
 			if (typeof path !== "string") continue;
 			const key = nfc(path);
+			entry.docs.push(key);
 			const prev = byPath.get(key);
 			byPath.set(key, prev ? { ...prev, duplicate: true } : entry);
 		}
@@ -104,6 +110,7 @@ export function parseSpecJson(text: string): ParseResult {
 		ok: true,
 		index: {
 			byPath,
+			entries,
 			generatedAt: typeof root.generated_at === "string" ? root.generated_at : null,
 			unreadableCount: Array.isArray(root.unreadable) ? root.unreadable.length : 0,
 			projects: root.projects.length,

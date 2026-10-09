@@ -1,12 +1,28 @@
-/* StatusBadge: 見出し部の印の色(§9.7)。色だけに頼らず、食い違いは下線、古さは薄さでも示す */
-.sb-badge.sb-tone-ok { color: var(--color-green); }
-.sb-badge.sb-tone-partial { color: var(--color-yellow); }
-.sb-badge.sb-tone-progress { color: var(--color-blue); }
-.sb-badge.sb-tone-todo { color: var(--text-muted); }
-.sb-badge.sb-tone-stopped { color: var(--color-red); }
-.sb-badge.sb-tone-other { color: var(--text-faint); }
+/* StatusBadge: 見出し部の印の色(§9.7)。色だけに頼らず、食い違いは下線、古さは薄さでも示す。一覧パネルと探す窓のアイコンも同じ色 */
+.sb-badge.sb-tone-ok, .sb-panel-group.sb-tone-ok > summary .sb-panel-icon, .sb-search-icon.sb-tone-ok { color: var(--color-green); }
+.sb-badge.sb-tone-partial, .sb-panel-group.sb-tone-partial > summary .sb-panel-icon, .sb-search-icon.sb-tone-partial { color: var(--color-yellow); }
+.sb-badge.sb-tone-progress, .sb-panel-group.sb-tone-progress > summary .sb-panel-icon, .sb-search-icon.sb-tone-progress { color: var(--color-blue); }
+.sb-badge.sb-tone-todo, .sb-panel-group.sb-tone-todo > summary .sb-panel-icon, .sb-search-icon.sb-tone-todo { color: var(--text-muted); }
+.sb-badge.sb-tone-stopped, .sb-panel-group.sb-tone-stopped > summary .sb-panel-icon, .sb-search-icon.sb-tone-stopped { color: var(--color-red); }
+.sb-badge.sb-tone-other, .sb-panel-group.sb-tone-other > summary .sb-panel-icon, .sb-search-icon.sb-tone-other { color: var(--text-faint); }
 .sb-badge.sb-conflict { text-decoration: underline wavy var(--color-red); box-shadow: inset 0 -2px 0 var(--color-red); }
 .sb-badge.sb-stale { opacity: 0.55; }
 .sb-badge .sb-text { margin-inline-start: 4px; font-size: var(--font-ui-smaller); }
 /* 文字を添えたときは、薄い色の帯で囲んで見つけやすくする(依頼者: 印がどこか分からない、2026-10-09) */
 .sb-badge.sb-with-text { width: auto; padding: 0 8px; border-radius: var(--radius-m); background-color: color-mix(in srgb, currentColor 14%, transparent); }
+
+/* 状態の一覧パネル(FR-17) */
+.sb-panel { padding: var(--size-4-2); }
+.sb-panel-note { color: var(--text-muted); font-size: var(--font-ui-small); margin-bottom: var(--size-4-2); }
+.sb-panel-group > summary { display: flex; align-items: center; gap: 6px; padding: 4px 2px; cursor: pointer; font-weight: var(--font-semibold); }
+.sb-panel-icon, .sb-search-icon { display: inline-flex; }
+.sb-panel-count { margin-inline-start: auto; color: var(--text-muted); font-weight: normal; font-size: var(--font-ui-smaller); }
+.sb-panel-item { display: flex; align-items: center; gap: 6px; padding: 3px 4px 3px 24px; border-radius: var(--radius-s); cursor: pointer; font-size: var(--font-ui-small); }
+.sb-panel-item:hover { background-color: var(--background-modifier-hover); }
+.sb-panel-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-panel-tag { flex: none; padding: 0 6px; border-radius: var(--radius-s); font-size: var(--font-ui-smaller); color: var(--text-muted); background-color: var(--background-modifier-border); }
+.sb-panel-tag.sb-panel-wait { color: var(--color-orange); background-color: color-mix(in srgb, var(--color-orange) 14%, transparent); }
+
+/* 状態で探す窓(FR-18) */
+.sb-search-item { display: flex; align-items: center; gap: 8px; }
+.sb-search-sub { color: var(--text-muted); font-size: var(--font-ui-smaller); }

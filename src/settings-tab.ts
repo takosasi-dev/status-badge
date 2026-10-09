@@ -18,6 +18,7 @@ export class StatusBadgeSettingTab extends PluginSettingTab {
 			{ type: "group", items: [                    // 最初の組は見出し無し(Plugin guidelines)
 				{ name: S.setSpecJson, desc: S.setSpecJsonDesc, control: { type: "text", key: "specJsonPath" } },
 				{ name: S.setBoard, desc: S.setBoardDesc, control: { type: "text", key: "boardNotePath" } },
+				{ name: S.setNotify, desc: S.setNotifyDesc, control: { type: "toggle", key: "notifyChanges" } },
 			] },
 			{ type: "group", heading: S.setHeadingManual, items: [
 				{ name: S.setShowManual, control: { type: "toggle", key: "showManual" } },
@@ -26,6 +27,7 @@ export class StatusBadgeSettingTab extends PluginSettingTab {
 			] },
 			{ type: "group", heading: S.setHeadingLook, items: [
 				{ name: S.setShowText, desc: S.setShowTextDesc, control: { type: "toggle", key: "showText" } },
+				{ name: S.setShowDots, desc: S.setShowDotsDesc, control: { type: "toggle", key: "showDots" } },
 				{ name: S.setStaleDays, desc: S.setStaleDaysDesc, control: { type: "text", key: "staleDays",
 					validate: (v: string) => (v.trim() === "" || /^\d+$/.test(v.trim()) ? undefined : S.errStaleDays) } },
 				{ name: S.setStyles, desc: missing.length ? S.setStylesDesc + "\n" + S.errIconMissing(missing) : S.setStylesDesc,

@@ -21,6 +21,8 @@ export interface Badge {
 	classes: string[];      // sb-tone-* と sb-conflict・sb-stale(§9.7)
 	menu: string[];         // 押したときの見出しの行(§9.6 の 1〜5)
 	reasonPath: string | null;  // 「根拠のノートを開く」の先(vault の中のノートだけ)
+	manualPath?: string;    // 説明書のノートなら、その場所(FR-22 で状態を変える先)
+	manualValue?: string;   // 説明書の今の値(読めない値なら無い)
 }
 
 /** 比べる前に NFC にそろえる(D-8。iPhone 由来の名前は NFD のことがある) */
@@ -66,6 +68,7 @@ export function manualBadge(path: string, value: ManualValue | null, set: Manual
 			classes: ["sb-tone-other"],
 			menu: [S.menuUnreadable(value.raw), S.menuReasonManual(set.manualProperty)],
 			reasonPath: null,
+			manualPath: path,
 		};
 	}
 	const style = styleFor(value.value, set.styles);
@@ -76,6 +79,8 @@ export function manualBadge(path: string, value: ManualValue | null, set: Manual
 		classes: ["sb-tone-" + style.tone],
 		menu: [S.menuState(value.value, S.sourceManual), S.menuReasonManual(set.manualProperty)],
 		reasonPath: null,
+		manualPath: path,
+		manualValue: value.value,
 	};
 }
 
@@ -153,6 +158,8 @@ export function specBadge(e: SpecEntry, index: SpecIndex, set: SpecSettings, now
 		icon: style.icon, title, text: e.state, classes,
 		menu: [S.menuState(e.state, S.sourceSpec), reason, ...conflicts, ...tail],
 		reasonPath: e.decidedBy ? notePathOf(e.decidedBy.path) : null,
+		manualPath: manual?.manualPath,
+		manualValue: manual?.manualValue,
 	};
 }
 
@@ -195,4 +202,79 @@ export function formatStyles(rules: StyleRule[]): string {
 export function missingIcons(rules: StyleRule[], ids: string[]): string[] {
 	const have = new Set(ids);
 	return [...new Set(rules.map((r) => r.icon))].filter((n) => !have.has(n) && !have.has("lucide-" + n));
+}
+
+// ---- 一覧パネル・探す・下の帯・ファイル一覧の点・変化の知らせ(FR-17〜FR-21) ----------------
+
+/** 一覧に並べる1件。仕様書はプロジェクトごと、説明書はノートごと */
+export interface Item { name: string; path: string; state: string; waiting: string | null; manual: boolean; }
+
+/** 状態の値を文字にする(文字でなければ JSON の文字。写すだけ) */
+export function stateText(v: unknown): string {
+	return typeof v === "string" ? v : JSON.stringify(v) ?? typeof v;
+}
+
+/** SpecStatus の一覧のプロジェクトを Item にする。文書が無い物は開けないので外す */
+export function specItems(index: SpecIndex): Item[] {
+	return index.entries.filter((e) => e.docs.length > 0).map((e) => ({
+		name: e.name || e.docs[0]!, path: e.docs[0]!, state: stateText(e.state),
+		waiting: e.extras.waiting, manual: false,
+	}));
+}
+
+export interface Group { state: string; style: StyleRule; items: Item[]; }
+
+/** 状態ごとにまとめる。並びは設定の表の順、表に無い値はその後に名前順。中は名前順 */
+export function groupItems(items: Item[], styles: StyleRule[]): Group[] {
+	const by = new Map<string, Item[]>();
+	for (const it of items) by.set(it.state, [...(by.get(it.state) ?? []), it]);
+	const order = (v: string) => {
+		const i = styles.findIndex((r) => r.value === v);
+		return i < 0 ? styles.length : i;
+	};
+	return [...by.keys()].sort((a, b) => order(a) - order(b) || a.localeCompare(b)).map((state) => ({
+		state, style: styleFor(state, styles),
+		items: by.get(state)!.sort((a, b) => a.name.localeCompare(b.name)),
+	}));
+}
+
+/** 待ち(「なし」以外)の種類ごとの件数。多い順 */
+export function waitingCounts(items: Item[]): [string, number][] {
+	const m = new Map<string, number>();
+	for (const it of items) if (it.waiting && it.waiting !== "なし") m.set(it.waiting, (m.get(it.waiting) ?? 0) + 1);
+	return [...m.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+/** 前の一覧と今の一覧で状態が変わったプロジェクトの行(FR-21)。増えた・消えた物は出さない */
+export function stateChanges(prev: SpecIndex, next: SpecIndex): string[] {
+	const key = (e: SpecEntry) => e.name + "\u0000" + (e.docs[0] ?? "");
+	const before = new Map(prev.entries.map((e) => [key(e), stateText(e.state)]));
+	const out: string[] = [];
+	for (const e of next.entries) {
+		const was = before.get(key(e));
+		const now = stateText(e.state);
+		if (was !== undefined && was !== now) out.push(S.changeLine(e.name || e.docs[0] || "?", was, now));
+	}
+	return out;
+}
+
+const TONE_COLOR: Record<Tone, string> = {
+	ok: "var(--color-green)", partial: "var(--color-yellow)", progress: "var(--color-blue)",
+	todo: "var(--text-muted)", stopped: "var(--color-red)", other: "var(--text-faint)",
+};
+
+/** CSS の文字列の中に入れるために \ と " と改行を逃がす */
+function cssString(s: string): string {
+	return '"' + s.replace(/[\\"]/g, "\\$&").replace(/\n/g, "\\a ") + '"';
+}
+
+/** ファイル一覧の行(本体の data-path 属性)に色の点を付ける CSS(FR-20)。NFD の名前の vault にも当たるよう両方の形を出す */
+export function dotCss(dots: { path: string; tone: Tone }[]): string {
+	const byTone = new Map<Tone, string[]>();
+	for (const d of dots) {
+		const forms = new Set([d.path, d.path.normalize("NFC"), d.path.normalize("NFD")]);
+		for (const f of forms) byTone.set(d.tone, [...(byTone.get(d.tone) ?? []), `.nav-file-title[data-path=${cssString(f)}]::after`]);
+	}
+	return [...byTone.entries()].map(([tone, sels]) => `${sels.join(",\n")} { content: ""; flex: none; align-self: center; `
+		+ `width: 7px; height: 7px; margin-inline-start: auto; border-radius: 50%; background-color: ${TONE_COLOR[tone]}; }`).join("\n");
 }

@@ -1,7 +1,7 @@
-// 画面に出す文字(日本語)をまとめた所(D-15)。
-// 文字と、値を埋める小さな関数だけ。振る舞いは持たない。
+// 画面に出す文字をまとめた所(D-15)。日本語(JA)と英語(EN)を持ち、useLanguage で S を切り替える(FR-23)。
+// 文字と、値を埋める小さな関数だけ。振る舞いは持たない。obsidian を import しない(テストで読む)。
 
-export const S = {
+const JA = {
 	titleState: (value: string) => `状態: ${value}`,
 	titleSuffixSpec: "(SpecStatus)",
 	titleSuffixManual: "(説明書)",
@@ -36,17 +36,34 @@ export const S = {
 	menuOpenBoard: "一覧ノートを開く",
 	menuOpenReason: "根拠のノートを開く",
 	menuReload: "読み直す",
+	menuSetManual: (value: string) => `説明書の状態を「${value}」にする`,
+	noticeSetManualFailed: (reason: string) => `説明書の状態を変えられません: ${reason}`,
 
 	cmdReload: "状態を読み直す",
 	cmdOpenBoard: "実装状況の一覧ノートを開く",
+	cmdOpenPanel: "状態の一覧パネルを開く",
+	cmdSearch: "状態で探す",
 	noticeReloaded: (count: number) => `状態の印を付け直しました(${count} 件)`,
 	noticeNoBoard: (path: string) => `一覧ノートがありません: ${path}`,
 	noticeSchema: "設定の形が違うので既定の値で動いています(data.json は書き換えていません)",
+	noticeChanged: (lines: string[]) => "状態が変わりました\n" + lines.join("\n"),
+	changeLine: (name: string, from: string, to: string) => `${name}: ${from} → ${to}`,
+	changeMore: (n: number) => `ほか ${n} 件`,
+
+	panelTitle: "状態の一覧",
+	panelEmpty: "SpecStatus の一覧も説明書の状態もありません",
+	panelUnreadable: (reason: string) => `SpecStatus の一覧を読めません: ${reason}`,
+	tagManual: "説明書",
+	searchPlaceholder: "状態・待ち・名前で探す",
+	statusBar: (parts: [string, number][]) => parts.map(([w, n]) => `${w} ${n}`).join("・"),
+	statusBarTitle: "押すと待ちの物を探す",
 
 	setSpecJson: "SpecStatus の JSON",
 	setSpecJsonDesc: "vault からのパス",
 	setBoard: "一覧ノート",
 	setBoardDesc: "vault からのパス",
+	setNotify: "状態が変わったら知らせる",
+	setNotifyDesc: "一覧を読み直したときに、変わった物を通知に出す",
 	setHeadingManual: "説明書",
 	setShowManual: "説明書にも印を出す",
 	setManualFolders: "説明書のフォルダ",
@@ -55,6 +72,8 @@ export const S = {
 	setHeadingLook: "見た目",
 	setShowText: "印に状態の文字を添える",
 	setShowTextDesc: "見出しが詰まる端末では切る",
+	setShowDots: "ファイル一覧に色の点を出す",
+	setShowDotsDesc: "Obsidian の作りに頼るので、本体の更新で出なくなることがある",
 	setStaleDays: "一覧が古いとみなす日数",
 	setStaleDaysDesc: "空なら古さの印を出さない",
 	setStyles: "値ごとのアイコンと色",
@@ -67,3 +86,99 @@ export const S = {
 	errStyleLine: (line: string) => `読めない行: ${line}`,
 	errStaleDays: "0 以上の整数か、空にしてください",
 };
+
+type Strings = typeof JA;
+
+const EN: Strings = {
+	titleState: (value) => `Status: ${value}`,
+	titleSuffixSpec: " (SpecStatus)",
+	titleSuffixManual: " (guide)",
+	titleConflict: " / conflicting",
+	titleStale: (days) => ` / list is ${days} days old`,
+
+	menuState: (value, source) => `Status: ${value} (${source})`,
+	sourceSpec: "SpecStatus",
+	sourceManual: "guide",
+	menuReasonManual: (prop) => `Source: frontmatter ${prop}`,
+	menuUnreadable: (raw) => `Unreadable value: ${raw}`,
+	menuReason: (source, value) => `Source: ${source} = ${value}`,
+	menuReasonNone: "Source: none",
+	menuConflict: (source, value) => `Conflict: ${source} = ${value}`,
+	menuGenerated: (g) => (g ? `List generated: ${g.text} (${g.days} days ago)` : "List generated: unreadable date"),
+	menuNote: (note) => `Note: ${note}`,
+	menuUnreadableCount: (n) => `Unreadable evidence: ${n}`,
+	menuWaiting: (w) => `Waiting: ${w}`,
+	menuPhase: (done, last) => `Phase: ${done}/${last ?? "?"}`,
+	menuAc: (checked, total) => `Acceptance criteria: ${checked}/${total}`,
+	menuVulns: (count, worst, pkg, fixed) =>
+		`Dependency vulnerabilities: ${count}` + (worst ? ` (worst ${worst}` + (pkg && fixed ? `, update ${pkg} to ${fixed}` : "") + ")" : ""),
+	menuSpecChanged: (d) => `Spec updated: ${d} (after the record)`,
+	menuStale: (days) => `Idle for ${days} days`,
+	menuGithub: (release, ci) => `GitHub: ${release}` + (ci && ci !== "成功" ? ` CI ${ci}` : ""),
+	duplicate: "Duplicate path in list",
+	menuDuplicate: "The list has this path twice (neither is used)",
+	missing: "Not in list",
+	menuMissing: "This note is not in the SpecStatus list (rebuild it, or the note was moved)",
+	noticeSpecLoaded: (projects, paths) => `Loaded the SpecStatus list (${projects} projects, ${paths} documents)`,
+	noticeSpecUnreadable: (reason) => `Cannot read the SpecStatus list: ${reason}`,
+	menuOpenBoard: "Open list note",
+	menuOpenReason: "Open source note",
+	menuReload: "Reload",
+	menuSetManual: (value) => `Set guide status to "${value}"`,
+	noticeSetManualFailed: (reason) => `Cannot change the guide status: ${reason}`,
+
+	cmdReload: "Reload status",
+	cmdOpenBoard: "Open the status list note",
+	cmdOpenPanel: "Open the status panel",
+	cmdSearch: "Find by status",
+	noticeReloaded: (count) => `Refreshed status badges (${count})`,
+	noticeNoBoard: (path) => `List note not found: ${path}`,
+	noticeSchema: "Settings have an unknown format, so defaults are used (data.json was not changed)",
+	noticeChanged: (lines) => "Status changed\n" + lines.join("\n"),
+	changeLine: (name, from, to) => `${name}: ${from} → ${to}`,
+	changeMore: (n) => `and ${n} more`,
+
+	panelTitle: "Status list",
+	panelEmpty: "No SpecStatus list and no guide statuses",
+	panelUnreadable: (reason) => `Cannot read the SpecStatus list: ${reason}`,
+	tagManual: "guide",
+	searchPlaceholder: "Find by status, waiting or name",
+	statusBar: (parts) => parts.map(([w, n]) => `${w} ${n}`).join(" · "),
+	statusBarTitle: "Click to find waiting items",
+
+	setSpecJson: "SpecStatus JSON",
+	setSpecJsonDesc: "Path in the vault",
+	setBoard: "List note",
+	setBoardDesc: "Path in the vault",
+	setNotify: "Notify on status changes",
+	setNotifyDesc: "Show what changed when the list is reloaded",
+	setHeadingManual: "Guides",
+	setShowManual: "Show badges on guides",
+	setManualFolders: "Guide folders",
+	setManualFoldersDesc: "One vault path per line. Subfolders are included",
+	setManualProperty: "Status property name",
+	setHeadingLook: "Appearance",
+	setShowText: "Show status text on the badge",
+	setShowTextDesc: "Turn off on devices with a crowded header",
+	setShowDots: "Show colored dots in the file explorer",
+	setShowDotsDesc: "Relies on Obsidian internals, so it may stop working after an update",
+	setStaleDays: "Days before the list counts as old",
+	setStaleDaysDesc: "Empty to never mark it old",
+	setStyles: "Icon and color per value",
+	setStylesDesc: "One \"value | icon | tone\" per line. Tones: ok, partial, progress, todo, stopped, other",
+	setMissingFolder: "Folder for \"not in list\" badges",
+	setMissingFolderDesc: "Empty to disable",
+	setMissingExclude: "Paths excluded from \"not in list\"",
+	setMissingExcludeDesc: "One per line",
+	errIconMissing: (names) => `Unknown icon: ${names.join(", ")} (circle is used instead)`,
+	errStyleLine: (line) => `Unreadable line: ${line}`,
+	errStaleDays: "Enter a whole number of 0 or more, or leave empty",
+};
+
+/** 今の言語の文字。既定は日本語(テストもこれで読む) */
+export const S: Strings = { ...JA };
+
+/** Obsidian の言語(getLanguage())で S を切り替える。ja 以外は英語 */
+export function useLanguage(lang: string): void {
+	Object.assign(S, lang.toLowerCase().startsWith("ja") ? JA : EN);
+}

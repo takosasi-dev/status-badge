@@ -14,7 +14,14 @@ Obsidian で仕様書や説明書を開くと、そのノートの「実装状�
 - **押すとメニュー**: 状態・根拠・食い違い・一覧を作った日時・メモに加えて、SpecStatus の JSON にあれば 待ち・Phase・受け入れ基準のチェック・脆弱な依存(一番重い物と上げる先の版)・仕様が変わった日・止まっている日数・GitHub の版も出します。「一覧ノートを開く」「根拠のノートを開く」「読み直す」もここから。
 - **食い違い・古さ**: SpecStatus が食い違いを見つけた物は下線、一覧が設定の日数より古いと薄く出します。
 - **自動で読み直す**: SpecStatus が JSON を書き直すと、操作なしに印が新しくなります。説明書の `状態:` を書き換えたときも同じです。
-- コマンド: 「状態を読み直す」「実装状況の一覧ノートを開く」(既定のホットキーは無し)。
+- **状態の一覧パネル**: 右の欄に、仕様書と説明書を状態ごとに畳める組で並べます。押すとノートを開きます(左のリボンのアイコンかコマンドで開く。iPhone でも使えます)。
+- **状態で探す**: 検索窓で「確認待ち」「未着手」や名前を打って絞り、そのまま開きます。
+- **下の帯の待ちの件数**: 「実物待ち 49・確認待ち 22」のように出し、押すと待ちで絞った検索窓が開きます(PC だけ)。
+- **ファイル一覧の色の点**: ファイル一覧の各行の右に、状態の色の点を出します(設定で切れます)。
+- **変わった物の知らせ**: SpecStatus が一覧を書き直したとき、状態が変わったプロジェクトを通知で知らせます(設定で切れます)。
+- **説明書の状態を変える**: 説明書の印のメニューから、frontmatter の状態を設定の表の値に変えられます。
+- 英語の画面: Obsidian の言語が日本語以外なら英語で出します(状態の値はそのまま)。
+- コマンド: 「状態を読み直す」「実装状況の一覧ノートを開く」「状態の一覧パネルを開く」「状態で探す」(既定のホットキーは無し)。
 
 ## 使い方の前提
 
@@ -41,19 +48,21 @@ BRAT は新しい版が出ると自動で取ってきます。iPhone・Android �
 | --- | --- | --- |
 | SpecStatus の JSON | `仕様書MDファイル/00_実装状況.json` | vault からのパス |
 | 一覧ノート | `仕様書MDファイル/00_実装状況.md` | メニューから開くノート |
+| 状態が変わったら知らせる | オン | 一覧を読み直したときに、変わった物を通知に出す |
 | 説明書にも印を出す | オン | |
 | 説明書のフォルダ | 空 | 1行に1つ。配下のフォルダも含む。frontmatter の状態を出したいフォルダを書く(例 `説明書/ツール`) |
 | 状態のプロパティ名 | `状態` | |
 | 印に状態の文字を添える | オン | 見出しが詰まる端末では切る |
+| ファイル一覧に色の点を出す | オン | Obsidian の作りに頼るので、本体の更新で出なくなることがある |
 | 一覧が古いとみなす日数 | 7 | 空なら古さの印を出さない |
 | 値ごとのアイコンと色 | 6状態+導入済み | 1行に「値 \| アイコン名 \| 色の系統」。アイコンは Lucide の名前、系統は ok・partial・progress・todo・stopped・other |
 | 「一覧に無い」の印を出すフォルダ | 空(出さない) | JSON に無い md に「一覧に無い」の印を出す |
 
 ## 安全のための決まり
 
-- vault のファイルを作らない・変えない・消さない。書くのはこのプラグインの設定(`data.json`)だけ。
+- vault のファイルを作らない・消さない・動かさない。書くのはこのプラグインの設定(`data.json`)と、メニューで説明書の状態を選んだときのそのノートの frontmatter のその項目だけ。
 - 状態は JSON か frontmatter の文字をそのまま出す。言い換えたり推測したりしない。
-- ネットワークに出ない。Obsidian の画面の中身(ファイル一覧など)には手を出さず、公開 API の `addAction` で自分の印を付けるだけ。
+- ネットワークに出ない。Obsidian の画面の中身は探さない・読まない。印は公開 API の `addAction`、ファイル一覧の点は自分のスタイルシート(本体の `data-path` 属性に当てる CSS)で付けるだけ。
 - Node.js や Electron の機能を使わない(モバイルでも動く)。
 
 ## 開発
@@ -78,6 +87,7 @@ MIT。[LICENSE](LICENSE) を見てください。
 
 - For specification notes, it reads the JSON written by [SpecStatus](https://github.com/takosasi-dev/spec-status) and shows the status exactly as written (no re-mapping or guessing). Clicking the badge shows the reason, conflicts, when the list was generated, and extra fields such as waiting, phase, acceptance-criteria checks, vulnerable dependencies (with the version to upgrade to), spec changes, stale days and the GitHub release.
 - For other notes in configured folders, it shows the value of a frontmatter property (default `状態`).
-- Read-only: it never creates, modifies or deletes vault files (only its own `data.json`), makes no network requests, and does not touch Obsidian's DOM beyond its own `addAction` element. Works on desktop and mobile.
+- Also: a status panel in the right sidebar (grouped by status), a "Find by status" command, a waiting count in the status bar (desktop), colored dots in the file explorer (via its own stylesheet; can be turned off), a notice when statuses change, and changing a guide note's status from the badge menu.
+- Safe by design: it never creates, deletes or moves vault files; it writes only its own `data.json` and, when you pick a status from the menu, that one frontmatter property of the guide note. No network requests. It does not query or read Obsidian's DOM. Works on desktop and mobile.
 - Install with [BRAT](https://github.com/TfTHacker/obsidian42-brat) (`takosasi-dev/status-badge`) or copy `main.js`, `manifest.json` and `styles.css` from the latest release into `.obsidian/plugins/status-badge/`.
-- The UI is in Japanese.
+- The UI is in Japanese, or English when Obsidian's language is not Japanese.
