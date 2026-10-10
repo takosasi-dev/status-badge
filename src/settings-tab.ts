@@ -6,6 +6,7 @@ import { S } from "./strings";
 import type StatusBadgePlugin from "./main";
 
 const LIST_KEYS = new Set(["manualFolders", "missingExclude"]);
+const DEVICE_KEY = "deviceName";          // data.json でなく、この端末だけの保存(同期されない)
 
 export class StatusBadgeSettingTab extends PluginSettingTab {
 	constructor(app: App, private readonly owner: StatusBadgePlugin) {
@@ -19,6 +20,10 @@ export class StatusBadgeSettingTab extends PluginSettingTab {
 				{ name: S.setSpecJson, desc: S.setSpecJsonDesc, control: { type: "text", key: "specJsonPath" } },
 				{ name: S.setBoard, desc: S.setBoardDesc, control: { type: "text", key: "boardNotePath" } },
 				{ name: S.setNotify, desc: S.setNotifyDesc, control: { type: "toggle", key: "notifyChanges" } },
+			] },
+			{ type: "group", heading: S.setHeadingRecord, items: [
+				{ name: S.setEventsDir, desc: S.setEventsDirDesc, control: { type: "text", key: "eventsDir" } },
+				{ name: S.setDevice, desc: S.setDeviceDesc, control: { type: "text", key: DEVICE_KEY } },
 			] },
 			{ type: "group", heading: S.setHeadingManual, items: [
 				{ name: S.setShowManual, control: { type: "toggle", key: "showManual" } },
@@ -45,11 +50,16 @@ export class StatusBadgeSettingTab extends PluginSettingTab {
 		if (LIST_KEYS.has(key)) return (s[key] as string[]).join("\n");
 		if (key === "styles") return formatStyles(this.owner.settings.styles);
 		if (key === "staleDays") return this.owner.settings.staleDays === null ? "" : String(this.owner.settings.staleDays);
+		if (key === DEVICE_KEY) return this.owner.deviceName();
 		return s[key];
 	}
 
 	async setControlValue(key: string, value: unknown): Promise<void> {
 		const s = this.owner.settings as unknown as Record<string, unknown>;
+		if (key === DEVICE_KEY) {
+			this.owner.setDeviceName(String(value));
+			return;
+		}
 		if (LIST_KEYS.has(key)) {
 			s[key] = String(value).split(/\r?\n/).map((x) => x.trim()).filter((x) => x !== "");
 		} else if (key === "styles") {

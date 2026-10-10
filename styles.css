@@ -22,6 +22,11 @@
 .sb-panel-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-panel-tag { flex: none; padding: 0 6px; border-radius: var(--radius-s); font-size: var(--font-ui-smaller); color: var(--text-muted); background-color: var(--background-modifier-border); }
 .sb-panel-tag.sb-panel-wait { color: var(--color-orange); background-color: color-mix(in srgb, var(--color-orange) 14%, transparent); }
+.sb-panel-edit { flex: none; padding: 2px; opacity: 0.55; }
+.sb-panel-edit:hover { opacity: 1; }
+.sb-panel-edit .svg-icon { width: 14px; height: 14px; }
+/* 進捗を記録する窓(FR-24) */
+.sb-record-note { width: 100%; min-width: 14em; }
 
 /* 状態で探す窓(FR-18) */
 .sb-search-item { display: flex; align-items: center; gap: 8px; }

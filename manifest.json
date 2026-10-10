@@ -1,7 +1,7 @@
 {
 	"id": "status-badge",
 	"name": "Status Badge",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"minAppVersion": "1.14.4",
 	"description": "Show the implementation status of notes as a badge in the view header, a status panel and dots in the file explorer.",
 	"author": "takosasi-dev",

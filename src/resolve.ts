@@ -23,6 +23,7 @@ export interface Badge {
 	reasonPath: string | null;  // 「根拠のノートを開く」の先(vault の中のノートだけ)
 	manualPath?: string;    // 説明書のノートなら、その場所(FR-22 で状態を変える先)
 	manualValue?: string;   // 説明書の今の値(読めない値なら無い)
+	recordPath?: string;    // 仕様書なら、進捗の記録を結ぶ先の文書(FR-24)
 }
 
 /** 比べる前に NFC にそろえる(D-8。iPhone 由来の名前は NFD のことがある) */
@@ -156,10 +157,11 @@ export function specBadge(e: SpecEntry, index: SpecIndex, set: SpecSettings, now
 	const conflicts = e.conflict ? e.conflicts.map((c) => S.menuConflict(c.source, c.value)) : [];
 	return {
 		icon: style.icon, title, text: e.state, classes,
-		menu: [S.menuState(e.state, S.sourceSpec), reason, ...conflicts, ...tail],
+		menu: [S.menuState(e.state, S.sourceSpec), ...(e.pending ? [S.menuPending] : []), reason, ...conflicts, ...tail],
 		reasonPath: e.decidedBy ? notePathOf(e.decidedBy.path) : null,
 		manualPath: manual?.manualPath,
 		manualValue: manual?.manualValue,
+		recordPath: e.recordDoc ?? undefined,
 	};
 }
 

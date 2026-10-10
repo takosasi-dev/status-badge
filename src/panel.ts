@@ -49,6 +49,14 @@ export class StatusPanel extends ItemView {
 				row.createSpan({ cls: "sb-panel-name", text: it.name });
 				if (it.manual) row.createSpan({ cls: "sb-panel-tag", text: S.tagManual });
 				if (it.waiting && it.waiting !== "なし") row.createSpan({ cls: "sb-panel-tag sb-panel-wait", text: it.waiting });
+				if (!it.manual && this.plugin.canRecord()) {         // FR-24: 仕様書の行から進捗を記録する窓
+					const edit = row.createSpan({ cls: "sb-panel-edit clickable-icon", attr: { "aria-label": S.panelEdit } });
+					setIcon(edit, "pencil");
+					edit.addEventListener("click", (evt) => {
+						evt.stopPropagation();
+						this.plugin.openRecord(it.path);
+					});
+				}
 				row.addEventListener("click", () => void this.plugin.openPath(it.path));
 			}
 		}

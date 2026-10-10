@@ -6,6 +6,7 @@ export interface Settings {
 	schemaVersion: 1;
 	specJsonPath: string;
 	boardNotePath: string;
+	eventsDir: string;
 	showManual: boolean;
 	manualFolders: string[];
 	manualProperty: string;
@@ -22,6 +23,7 @@ export const DEFAULTS: Settings = {
 	schemaVersion: 1,
 	specJsonPath: "仕様書MDファイル/00_実装状況.json",
 	boardNotePath: "仕様書MDファイル/00_実装状況.md",
+	eventsDir: "spec-status/data/events",          // FR-24: 進捗の記録を足す先(SpecStatus の記録のフォルダ)
 	showManual: true,
 	manualFolders: [],                             // 公開の既定は空(使う人が自分の vault のフォルダを書く)
 	manualProperty: "状態",
@@ -65,6 +67,7 @@ export function normalizeSettings(raw: unknown): { settings: Settings; mismatch:
 			schemaVersion: 1,
 			specJsonPath: str("specJsonPath"),
 			boardNotePath: str("boardNotePath"),
+			eventsDir: str("eventsDir"),
 			showManual: bool("showManual"),
 			manualFolders: list("manualFolders"),
 			manualProperty: str("manualProperty"),

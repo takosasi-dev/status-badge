@@ -1,21 +1,26 @@
 // StatusBadge の入口: 設定・コマンド・付け直しのきっかけのイベント(FR-11・FR-12)。onLayoutReady で初回、onunload で印を全部外す。
 // 仕様書は SpecStatus の JSON、説明書は frontmatter から写す。書き込みは saveData() と、説明書の状態を変えるとき(FR-22)だけ。
 // v1.1: 一覧パネル(FR-17)・探す窓(FR-18)・下の帯(FR-19)・ファイル一覧の点(FR-20)・変化の知らせ(FR-21)・英語の画面(FR-23)。
-import { getLanguage, Notice, Plugin, TAbstractFile, TFile } from "obsidian";
+import { getLanguage, Notice, Platform, Plugin, TAbstractFile, TFile } from "obsidian";
 import { Badges } from "./badges";
 import { Dots } from "./dots";
 import { readManual } from "./manual";
 import { PANEL_VIEW, StatusPanel } from "./panel";
+import { RecordModal } from "./record-modal";
 import { inFolders, manualBadge, missingBadge, nfc, specBadge, specItems, stateChanges, stateText, styleFor, waitingCounts,
 	type Badge, type Item, type Tone } from "./resolve";
 import { StatusSearch } from "./search";
 import { normalizeSettings, type Settings } from "./settings";
 import { StatusBadgeSettingTab } from "./settings-tab";
+import type { SpecEntry } from "./spec/parse";
+import { deviceFileName, recordLine, type RecordChange } from "./spec/records";
 import { SpecSource } from "./spec/source";
 import { S, useLanguage } from "./strings";
 
 /** 変化の知らせに並べる行の上限 */
 const MAX_CHANGE_LINES = 8;
+/** この端末の名前を置く鍵(App.saveLocalStorage。vault ごと・端末ごとで、同期されない) */
+const DEVICE_KEY = "status-badge-device";
 
 export default class StatusBadgePlugin extends Plugin {
 	settings!: Settings;
@@ -36,6 +41,13 @@ export default class StatusBadgePlugin extends Plugin {
 		this.addCommand({ id: "open-status-board", name: S.cmdOpenBoard, callback: () => void this.openPath(this.settings.boardNotePath) });
 		this.addCommand({ id: "open-status-panel", name: S.cmdOpenPanel, callback: () => void this.openPanel() });
 		this.addCommand({ id: "find-by-status", name: S.cmdSearch, callback: () => new StatusSearch(this).open() });
+		this.addCommand({ id: "record-progress", name: S.cmdRecord, checkCallback: (checking) => {
+			const file = this.app.workspace.getActiveFile();
+			const entry = file && this.canRecord() ? this.entryFor(file.path) : null;
+			if (!entry?.recordDoc) return false;
+			if (!checking) new RecordModal(this, entry).open();
+			return true;
+		} });
 		this.addRibbonIcon("list-checks", S.cmdOpenPanel, () => void this.openPanel());
 		this.statusEl = this.addStatusBarItem();          // PC だけ(iPhone には下の帯が無い)
 		this.statusEl.addClass("mod-clickable");
@@ -52,7 +64,9 @@ export default class StatusBadgePlugin extends Plugin {
 		// SpecStatus が JSON を書き直したら読み直す(FR-11。D-6 で Vault API なので modify が来る)
 		const onJson = (file: TAbstractFile, oldPath?: string) => {
 			const target = nfc(this.settings.specJsonPath);
-			if (nfc(file.path) === target || (oldPath !== undefined && nfc(oldPath) === target)) void this.reload(false);
+			const events = this.eventsDir();
+			const isEvent = events !== "" && nfc(file.path).startsWith(events + "/") && file.path.endsWith(".jsonl");   // 記録が足された(FR-25)
+			if (nfc(file.path) === target || (oldPath !== undefined && nfc(oldPath) === target) || isEvent) void this.reload(false);
 			else if (oldPath !== undefined) this.schedule(true);                       // ほかのノートの名前の変更
 		};
 		this.registerEvent(this.app.vault.on("modify", (f) => onJson(f)));
@@ -98,7 +112,7 @@ export default class StatusBadgePlugin extends Plugin {
 	async reload(notice: boolean): Promise<void> {
 		const prev = this.spec.index;
 		try {
-			await this.spec.load(this.app, this.settings.specJsonPath);
+			await this.spec.load(this.app, this.settings.specJsonPath, this.settings.eventsDir);
 		} catch (e) {
 			this.spec.index = null;
 			this.spec.reason = e instanceof Error ? e.message : String(e);
@@ -185,6 +199,70 @@ export default class StatusBadgePlugin extends Plugin {
 		} catch (e) {
 			new Notice(S.noticeSetManualFailed(e instanceof Error ? e.message : String(e)));
 		}
+	}
+
+	// ---- 進捗の記録(FR-24) ----
+
+	/** 記録のフォルダ(NFC・末尾の / なし)。空なら記録しない */
+	private eventsDir(): string {
+		return nfc(this.settings.eventsDir).trim().replace(/\/+$/, "");
+	}
+
+	canRecord(): boolean {
+		return this.eventsDir() !== "";
+	}
+
+	/** この端末の名前(記録ファイルの名前)。無ければ作って、この端末にだけ覚える */
+	deviceName(): string {
+		const saved: unknown = this.app.loadLocalStorage(DEVICE_KEY);
+		const ok = typeof saved === "string" ? deviceFileName(saved) : null;
+		if (ok) return ok;
+		const kind = Platform.isIosApp ? "ios" : Platform.isAndroidApp ? "android" : "desktop";
+		const name = `obsidian-${kind}-${Math.random().toString(16).slice(2, 6)}`;
+		this.app.saveLocalStorage(DEVICE_KEY, name);
+		return name;
+	}
+
+	setDeviceName(value: string): void {
+		const name = deviceFileName(value);
+		if (name) this.app.saveLocalStorage(DEVICE_KEY, name);       // 空・使えない名前なら前のまま
+	}
+
+	/** そのノートのプロジェクト(一覧に無い・同じパスが2つなら null) */
+	entryFor(path: string): SpecEntry | null {
+		const e = this.spec.index?.byPath.get(nfc(path));
+		return e && !e.duplicate ? e : null;
+	}
+
+	openRecord(path: string): void {
+		const entry = this.entryFor(path);
+		if (!entry?.recordDoc || !this.canRecord()) {
+			new Notice(S.noticeNoRecordTarget);
+			return;
+		}
+		new RecordModal(this, entry).open();
+	}
+
+	/** SpecStatus の記録に1行足す(この端末用のファイル)。足すと vault の modify で読み直しが走り、印に重なる(FR-25) */
+	async writeRecord(entry: SpecEntry, change: RecordChange): Promise<boolean> {
+		const device = this.deviceName();
+		const line = entry.recordDoc ? recordLine(new Date(), device, entry.recordDoc, change) : null;
+		if (!line) {
+			new Notice(entry.recordDoc ? S.errLineLong : S.noticeNoRecordTarget);
+			return false;
+		}
+		const path = `${this.eventsDir()}/${device}.jsonl`;
+		try {
+			const file = this.app.vault.getFileByPath(path);
+			// 前の書き込みが改行で終わっていなければ、先に改行を足す(SpecStatus は改行で終わらない末尾を「未完」とする)
+			if (file) await this.app.vault.process(file, (data) => (data !== "" && !data.endsWith("\n") ? data + "\n" : data) + line + "\n");
+			else await this.app.vault.create(path, line + "\n");
+		} catch (e) {
+			new Notice(S.noticeRecordFailed(e instanceof Error ? e.message : String(e)));
+			return false;
+		}
+		new Notice(S.noticeRecorded(entry.name));
+		return true;
 	}
 
 	/** 一覧パネルを右の欄に開く(あれば前に出す) */

@@ -26,7 +26,13 @@ export interface SpecEntry {
 	extras: SpecExtras;
 	duplicate: boolean;             // 同じパスが2つのプロジェクトに出た(§10)
 	docs: string[];                 // このプロジェクトの文書のパス(NFC。FR-17 の一覧で開く先)
+	recordDoc: string | null;       // 記録を結ぶ先の文書(FR-24。種類が「仕様書」の物、無ければ付属でない最初の物)
+	lastRecordAt: number | null;    // 一覧に畳まれている最後の記録の時刻(ms)。これより新しい記録を重ねる(FR-25)
+	pending: boolean;               // 一覧の作り直し前の記録を重ねた(FR-25)
 }
+
+/** SpecStatus の「付属」の文書(README など)。記録の宛先にならない */
+const SUPPORT_KIND = "付属";
 
 export interface SpecIndex {
 	byPath: Map<string, SpecEntry>;
@@ -95,13 +101,25 @@ export function parseSpecJson(text: string): ParseResult {
 			extras: extras(p),
 			duplicate: false,
 			docs: [],
+			recordDoc: null,
+			lastRecordAt: null,
+			pending: false,
 		};
+		const last = obj(p.last_record)?.at;
+		const lastMs = typeof last === "string" ? Date.parse(last) : NaN;
+		entry.lastRecordAt = Number.isNaN(lastMs) ? null : lastMs;
 		entries.push(entry);
+		let bestIsSpec = false;
 		for (const d of p.docs) {
 			const path = obj(d)?.path;
 			if (typeof path !== "string") continue;
 			const key = nfc(path);
 			entry.docs.push(key);
+			const kind = obj(d)?.kind;
+			if (kind !== SUPPORT_KIND && key.toLowerCase().endsWith(".md") && (entry.recordDoc === null || (kind === "仕様書" && !bestIsSpec))) {
+				entry.recordDoc = key;
+				bestIsSpec = kind === "仕様書";
+			}
 			const prev = byPath.get(key);
 			byPath.set(key, prev ? { ...prev, duplicate: true } : entry);
 		}

@@ -11,6 +11,10 @@ export function showBadgeMenu(plugin: StatusBadgePlugin, badge: Badge, evt: Mous
 		menu.addItem((item) => item.setTitle(line).setIsLabel(true));
 	}
 	menu.addSeparator();
+	const record = badge.recordPath;
+	if (record && plugin.canRecord()) {                // FR-24: 仕様書なら、進捗を記録する窓
+		menu.addItem((item) => item.setTitle(S.menuRecord).setIcon("pencil").onClick(() => plugin.openRecord(record)));
+	}
 	if (plugin.app.vault.getFileByPath(plugin.settings.boardNotePath)) {
 		menu.addItem((item) => item.setTitle(S.menuOpenBoard).setIcon("table").onClick(() => void plugin.openPath(plugin.settings.boardNotePath)));
 	}
