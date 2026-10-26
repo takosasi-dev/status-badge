@@ -36,8 +36,11 @@ jobs:
       - name: ビルド
         run: npm run build
 
+      # 試験の時刻の表示は日本時間を前提に書いてある
       - name: テスト
         run: npm test
+        env:
+          TZ: Asia/Tokyo
 
       - name: lint
         run: npm run lint
